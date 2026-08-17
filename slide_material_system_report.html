@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Excel 物料版本比對與更新系統成果報告</title>
+  <style>
+    :root {
+      --ink: #102638;
+      --muted: #5f7487;
+      --line: #d6e1e9;
+      --paper: #f4f7f9;
+      --panel: #ffffff;
+      --teal: #157589;
+      --teal-dark: #0f5264;
+      --blue-soft: #edf7fa;
+      --green-soft: #eff7f1;
+      --amber-soft: #fff7eb;
+      --rose-soft: #fff4f2;
+      --shadow: 0 20px 50px rgba(16, 38, 56, 0.13);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; color: var(--ink); background: var(--paper); font-family: "Microsoft JhengHei", "Noto Sans TC", "PingFang TC", Arial, sans-serif; letter-spacing: 0; }
+    body { overflow: hidden; }
+    .deck { width: 100vw; height: 100vh; overflow: hidden; position: relative; }
+    .slides { display: flex; width: 100%; height: 100%; transform: translateX(calc(var(--slide-index, 0) * -100vw)); transition: transform 360ms ease; }
+    .slide { flex: 0 0 100vw; height: 100vh; padding: 42px 56px 64px; display: grid; grid-template-rows: auto 1fr; gap: 22px; overflow: auto; }
+    .slideHeader { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 28px; }
+    .eyebrow { margin: 0 0 10px; color: var(--teal-dark); font-size: 15px; font-weight: 700; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 16px; max-width: 1000px; font-size: 52px; line-height: 1.16; }
+    h2 { margin-bottom: 10px; max-width: 1080px; font-size: 35px; line-height: 1.25; }
+    h3 { margin-bottom: 10px; font-size: 20px; line-height: 1.38; }
+    p, li { font-size: 18px; line-height: 1.72; }
+    .lead { margin-bottom: 0; max-width: 960px; color: var(--muted); font-size: 21px; line-height: 1.68; }
+    .pageTag { padding: 10px 14px; color: var(--muted); background: rgba(255,255,255,0.8); border: 1px solid var(--line); border-radius: 8px; font-size: 14px; white-space: nowrap; }
+    .panel { min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 24px; box-shadow: 0 12px 28px rgba(16,38,56,0.06); }
+    .soft { background: var(--blue-soft); border-color: #c7e1e8; }
+    .green { background: var(--green-soft); border-color: #c7dccd; }
+    .amber { background: var(--amber-soft); border-color: #edd7b3; }
+    .rose { background: var(--rose-soft); border-color: #eccac4; }
+    .heroGrid { display: grid; grid-template-columns: 1.12fr 0.88fr; gap: 26px; align-items: stretch; min-height: 0; }
+    .quotePanel { display: grid; align-content: center; padding: 34px; border-left: 6px solid var(--teal); }
+    .quote { margin: 0; font-size: 27px; line-height: 1.62; font-weight: 700; }
+    .twoCol { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: stretch; }
+    .threeCol { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: stretch; }
+    .plainList { margin: 0; padding-left: 1.15em; }
+    .plainList li + li { margin-top: 8px; }
+    .metricRow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 18px; }
+    .metric { padding: 18px; background: #fff; border: 1px solid var(--line); border-radius: 8px; }
+    .metric strong { display: block; margin-bottom: 8px; color: var(--teal-dark); font-size: 34px; line-height: 1; }
+    .metric span { color: var(--muted); font-size: 15px; line-height: 1.48; }
+    .sopGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; align-items: stretch; }
+    .sopCard { display: grid; grid-template-rows: auto auto 1fr; gap: 12px; min-height: 240px; padding: 22px; background: #fff; border: 1px solid var(--line); border-radius: 8px; }
+    .sopNumber { display: inline-flex; width: 36px; height: 36px; align-items: center; justify-content: center; color: #fff; background: var(--teal); border-radius: 50%; font-weight: 700; }
+    .showcase { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 22px; min-height: 0; }
+    .showcase.reversed { grid-template-columns: 340px minmax(0, 1fr); }
+    .showcase.reversed .imageStage { order: 2; }
+    .imageStage { display: grid; grid-template-rows: 1fr auto; min-height: 0; background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; box-shadow: 0 16px 38px rgba(16,38,56,0.09); }
+    .imageButton { all: unset; display: grid; place-items: center; width: 100%; height: 100%; min-height: 430px; cursor: zoom-in; background: #f8fbfd; }
+    .imageButton img { display: block; width: 100%; height: 100%; max-height: 62vh; object-fit: contain; background: #fff; }
+    .captionBar { padding: 12px 16px; color: var(--muted); border-top: 1px solid var(--line); background: #fff; font-size: 15px; line-height: 1.5; }
+    .notes { display: grid; gap: 14px; align-content: start; }
+    .noteBlock { padding: 18px; background: #fff; border: 1px solid var(--line); border-radius: 8px; }
+    .noteBlock strong { display: block; margin-bottom: 6px; color: var(--teal-dark); font-size: 17px; }
+    .noteBlock span { color: var(--muted); font-size: 15px; line-height: 1.58; }
+    .formula { display: grid; gap: 12px; margin-top: 20px; }
+    .formulaLine { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 15px 18px; background: #fff; border: 1px solid var(--line); border-radius: 8px; font-size: 18px; }
+    .formulaLine strong { color: var(--teal-dark); font-size: 24px; white-space: nowrap; }
+    .riskTable { width: 100%; border-collapse: collapse; overflow: hidden; background: #fff; border: 1px solid var(--line); border-radius: 8px; font-size: 17px; }
+    .riskTable th, .riskTable td { padding: 17px 18px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); line-height: 1.62; }
+    .riskTable th { color: var(--teal-dark); background: #edf7fa; font-size: 16px; }
+    .riskTable tr:last-child td { border-bottom: 0; }
+    .pillRow { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 16px; }
+    .pill { display: inline-flex; padding: 8px 12px; color: var(--teal-dark); background: #edf7fa; border-radius: 999px; font-size: 14px; font-weight: 700; }
+    .smallNote { color: var(--muted); font-size: 15px; line-height: 1.68; }
+    .closing { display: grid; place-items: center; height: 100%; text-align: center; }
+    .closing .panel { max-width: 1060px; padding: 42px; }
+    .controls { position: fixed; left: 50%; bottom: 18px; z-index: 20; display: flex; align-items: center; gap: 10px; padding: 8px; background: rgba(255,255,255,0.9); border: 1px solid var(--line); border-radius: 999px; box-shadow: var(--shadow); transform: translateX(-50%); }
+    .navBtn { border: 1px solid var(--line); border-radius: 999px; padding: 9px 14px; color: var(--ink); background: #fff; cursor: pointer; font-size: 14px; }
+    .navBtn:hover { border-color: var(--teal); color: var(--teal-dark); }
+    .counter { min-width: 78px; text-align: center; color: var(--muted); font-size: 14px; }
+    .modal { position: fixed; inset: 0; z-index: 50; display: none; place-items: center; padding: 28px; background: rgba(7,19,28,0.82); }
+    .modal.open { display: grid; }
+    .modalInner { position: relative; max-width: min(94vw, 1540px); max-height: 88vh; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: var(--shadow); }
+    .modalInner img { display: block; width: 100%; max-height: 82vh; object-fit: contain; background: #fff; }
+    .modalCaption { padding: 12px 16px; color: var(--muted); border-top: 1px solid var(--line); font-size: 15px; }
+    .closeBtn { position: absolute; top: 12px; right: 12px; z-index: 2; border: 1px solid rgba(255,255,255,0.7); border-radius: 999px; padding: 8px 12px; color: #fff; background: rgba(0,0,0,0.45); cursor: pointer; }
+    @media (max-width: 1080px) {
+      body { overflow: auto; }
+      .deck { height: auto; overflow: visible; }
+      .slides { display: block; transform: none !important; }
+      .slide { height: auto; min-height: 100vh; padding: 34px 22px 76px; }
+      .slideHeader, .heroGrid, .twoCol, .threeCol, .sopGrid, .showcase, .showcase.reversed, .metricRow { grid-template-columns: 1fr; }
+      .showcase.reversed .imageStage { order: 0; }
+      h1 { font-size: 38px; }
+      h2 { font-size: 30px; }
+      .controls { display: none; }
+      .imageButton { min-height: 260px; }
+    }
+    @media print {
+      body { overflow: visible; background: #fff; }
+      .deck { height: auto; overflow: visible; }
+      .slides { display: block; transform: none !important; }
+      .slide { height: 100vh; page-break-after: always; }
+      .controls, .modal { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck" aria-label="Excel 物料版本比對與更新系統成果報告">
+    <div class="slides" id="slides">
+      <section class="slide">
+        <div class="slideHeader">
+          <div>
+            <p class="eyebrow">成果報告</p>
+            <h1>Excel 物料版本比對與更新系統</h1>
+            <p class="lead">從每年大量廠商調查表出發，將人工整理、差異比對與總表定版流程整合為一套可追溯、可確認、可持續維護的內部工具。</p>
+          </div>
+          <div class="pageTag">作品集式成果簡報</div>
+        </div>
+        <div class="heroGrid">
+          <div class="panel quotePanel">
+            <p class="quote">這套系統要解決的，不只是「填 Excel 很花時間」，而是長期累積資料在多人、多檔、多版本之間流動時，如何確保每一次更新都有依據。</p>
+          </div>
+          <div class="panel soft">
+            <h3>報告重點</h3>
+            <ul class="plainList">
+              <li>說明年度調查表整理工作的背景與痛點。</li>
+              <li>介紹系統如何將複雜流程拆成四個分頁 SOP。</li>
+              <li>展示上傳、查詢、比對、確認、定版等功能畫面。</li>
+              <li>呈現量化工時節省與管理層面的改善效益。</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide">
+        <div class="slideHeader">
+          <div>
+            <p class="eyebrow">01 開發背景</p>
+            <h2>每年約 200 份調查表，都要回到一份累積十多年的總表</h2>
+            <p class="lead">公司每年需要收集廠商提供的原物料與包材調查表，並將其中的化學物質資訊整理進總表。這份總表不是一次建立完成，而是在多年工作中持續維護而成。</p>
+          </div>
+          <div class="pageTag">年度例行資料維護</div>
+        </div>
+        <div class="twoCol">
+          <div class="panel">
+            <h3>資料工作的真實樣貌</h3>
+            <ul class="plainList">
+              <li>調查表來源分散，廠商格式與填寫習慣不完全一致。</li>
+              <li>原物料與包材的工作表結構不同，比對方式也不同。</li>
+              <li>新物質、新 CAS、濃度或含有值變更，都需要回到總表核對。</li>
+              <li>總表已有長期歷史，更新時必須保留既有格式與資料脈絡。</li>
+            </ul>
+          </div>
+          <div class="panel amber">
+            <h3>年度量體</h3>
+            <div class="metricRow">
+              <div class="metric"><strong>200</strong><span>每年約需整理的調查表份數</span></div>
+              <div class="metric"><strong>10+</strong><span>總表累積維護年限</span></div>
+              <div class="metric"><strong>2</strong><span>原物料與包材兩種邏輯</span></div>
+            </div>
+            <p class="smallNote">因此問題並不只是資料量大，而是每一次更新都要能正確辨識、人工確認並留下版本依據。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide">
+        <div class="slideHeader">
+          <div>
+            <p class="eyebrow">02 舊流程痛點</p>
+            <h2>人工整理最花時間的地方，往往不是輸入，而是找差異與找最新版</h2>
+            <p class="lead">單看填寫 Excel，平均一份約 8 分鐘；但真正消耗心力的，是當版本混亂、新舊資料不易對照，或多人同時編輯時產生的額外確認成本。</p>
+          </div>
+          <div class="pageTag">效率與風險並存</div>
+        </div>
+        <div class="threeCol">
+          <div class="panel rose"><h3>人工比對耗時</h3><p>新增、修改與既有資料差異，需要逐列檢查。遇到 CAS、化學物質名稱或濃度欄位不一致時，確認成本會快速上升。</p></div>
+          <div class="panel amber"><h3>版本不易控管</h3><p>總表在多人之間流動，可能出現「手上版本不是最新版」或「兩人同時更新不同檔案」的狀況，後續整併更困難。</p></div>
+          <div class="panel soft"><h3>來源不易追溯</h3><p>更新後若要回頭確認某一筆資料從哪份調查表而來，人工紀錄不完整時，需要重新翻找來源檔案。</p></div>
+        </div>
+      </section>
+
+      <section class="slide">
+        <div class="slideHeader">
+          <div>
+            <p class="eyebrow">03 系統設計理念</p>
+            <h2>把複雜的年度整理工作拆成四個分頁 SOP</h2>
+            <p class="lead">系統不只是協助比對資料，也把原本分散在個人經驗中的整理工作拆解成固定流程，讓操作更一致、交接更容易，版本管理也更有依據。</p>
+          </div>
+          <div class="pageTag">四個分頁 SOP</div>
+        </div>
+        <div class="sopGrid">
+          <div class="sopCard"><span class="sopNumber">1</span><h3>上傳</h3><p>建立目前要使用的總表基準，明確知道後續比對是從哪一版開始。</p></div>
+          <div class="sopCard"><span class="sopNumber">2</span><h3>總表查詢</h3><p>先查既有供應商、品項與化學物質資料，避免重複整理或誤判新增。</p></div>
+          <div class="sopCard"><span class="sopNumber">3</span><h3>調查表上傳</h3><p>原物料與包材分流加入批次，讓不同格式的調查表進入正確比對流程。</p></div>
+          <div class="sopCard"><span class="sopNumber">4</span><h3>版本管理</h3><p>確認差異、套用修改、產出新版並完成定版，留下可追溯的版本歷程。</p></div>
+        </div>
+      </section>
+
+      <section class="slide">
+        <div class="slideHeader"><div><p class="eyebrow">SOP 1｜上傳</p><h2>先建立比對基準，避免一開始就拿錯總表</h2><p class="lead">總表頁面讓使用者上傳或拖曳 Excel，並在清單中標示目前最新總表。這一步的管理價值，是先把「本次到底用哪一版」講清楚。</p></div><div class="pageTag">點擊圖片可放大</div></div>
+        <div class="showcase">
+          <figure class="imageStage"><button class="imageButton" type="button" data-full="presentation_assets/master-upload.png" data-caption="上傳總表：建立本次比對基準，並標示目前最新總表。"><img src="presentation_assets/master-upload.png" alt="上傳總表頁面"></button><figcaption class="captionBar">上傳總表：拖曳或選擇 Excel，上傳後可下載、定最新版，並清楚標示目前最新總表。</figcaption></figure>
+          <div class="notes"><div class="noteBlock"><strong>目的</strong><span>讓所有後續比對都從同一份總表開始，降低錯版風險。</span></div><div class="noteBlock"><strong>操作</strong><span>上傳總表後，由系統列出總表清單與目前最新版本。</span></div><div class="noteBlock"><strong>管理價值</strong><span>把「最新版」從口頭確認變成畫面狀態，減少多人各自持有不同檔案的問題。</span></div></div>
+        </div>
+      </section>
+
+      <section class="slide">
+        <div class="slideHeader"><div><p class="eyebrow">SOP 2｜總表查詢</p><h2>比對前先查既有資料，避免重複整理與誤判新增</h2><p class="lead">總表查詢可依工作表、供應商、品項、分類或細項化學物質搜尋既有資料。這個頁面讓使用者先理解總表現況，再決定後續調查表如何補充。</p></div><div class="pageTag">查詢與核對</div></div>
+        <div class="showcase reversed">
+          <figure class="imageStage"><button class="imageButton" type="button" data-full="presentation_assets/master-query.png" data-caption="總表查詢：依供應商、品項、分類與化學物質查找既有總表細項。"><img src="presentation_assets/master-query.png" alt="總表查詢頁面"></button><figcaption class="captionBar">總表查詢：快速查看既有供應商、品項與化學物質細項，支援分頁與大量資料瀏覽。</figcaption></figure>
+          <div class="notes"><div class="noteBlock"><strong>目的</strong><span>先確認總表已有資料，降低重複新增或錯誤分類的機率。</span></div><div class="noteBlock"><strong>操作</strong><span>依供應商名稱、代號、品項或化學物質關鍵字搜尋。</span></div><div class="noteBlock"><strong>管理價值</strong><span>讓總表不只是更新結果，也成為日常查詢與核對依據。</span></div></div>
+        </div>
+      </section>
+
+      <section class="slide">
+        <div class="slideHeader"><div><p class="eyebrow">SOP 3｜調查表上傳</p><h2>原物料與包材分流，讓不同格式進入正確比對流程</h2><p class="lead">調查表上傳頁將原物料與包材分成兩個區塊，並要求填入供應商與品項資料。這一步能避免包材與原物料邏輯混用，也讓本輪批次更清楚。</p></div><div class="pageTag">批次準備</div></div>
+        <div class="showcase">
+          <figure class="imageStage"><button class="imageButton" type="button" data-full="presentation_assets/survey-upload.png" data-caption="調查表上傳：原物料與包材分別加入本輪批次。"><img src="presentation_assets/survey-upload.png" alt="調查表上傳頁面"></button><figcaption class="captionBar">調查表上傳：原物料與包材分區，加入後顯示本輪已加入份數，讓批次狀態更直覺。</figcaption></figure>
+          <div class="notes"><div class="noteBlock"><strong>目的</strong><span>讓不同類型調查表在比對前先分流，降低資料套錯欄位的風險。</span></div><div class="noteBlock"><strong>操作</strong><span>填入供應商與品項，選擇單份 Excel 後加入對應批次。</span></div><div class="noteBlock"><strong>管理價值</strong><span>把「本輪有哪些檔案」從個人記憶變成系統狀態。</span></div></div>
+        </div>
+      </section>
+
+      <section class="slide">
+        <div class="slideHeader"><div><p class="eyebrow">SOP 4｜版本管理與比對</p><h2>執行比對時，系統顯示本輪進度與下一步</h2><p class="lead">版本管理頁承接本輪批次，顯示目前比對基準、原物料與包材處理進度，以及下一步操作提示。使用者不用記流程，照著狀態欄完成即可。</p></div><div class="pageTag">本輪進度</div></div>
+        <div class="showcase reversed">
+          <figure class="imageStage"><button class="imageButton" type="button" data-full="presentation_assets/compare-start.png" data-caption="執行比對：顯示本輪原物料與包材進度，提示下一步。"><img src="presentation_assets/compare-start.png" alt="執行比對頁面"></button><figcaption class="captionBar">執行比對：本輪進度將原物料與包材分開呈現，避免不知道目前處理到哪一步。</figcaption></figure>
+          <div class="notes"><div class="noteBlock"><strong>目的</strong><span>把比對工作從「人工記得做到哪」改成由系統顯示狀態。</span></div><div class="noteBlock"><strong>操作</strong><span>按下開始比對後，系統依序處理本輪原物料與包材調查表。</span></div><div class="noteBlock"><strong>管理價值</strong><span>流程透明化後，交接、暫停、繼續比對都比較不容易混亂。</span></div></div>
+        </div>
+      </section>
+
+      <section class="slide">
+        <div class="slideHeader"><div><p class="eyebrow">差異確認</p><h2>系統先找出新增與修改，人再決定是否套用</h2><p class="lead">對品質與法規相關資料而言，自動更新不能完全取代人工判斷。因此系統設計成「自動找差異、人工確認、再產生新版」的流程。</p></div><div class="pageTag">人機協作</div></div>
+        <div class="showcase">
+          <figure class="imageStage"><button class="imageButton" type="button" data-full="presentation_assets/compare-review.png" data-caption="差異確認：列出新增與修改項目，使用者確認後才套用。"><img src="presentation_assets/compare-review.png" alt="差異確認畫面"></button><figcaption class="captionBar">差異確認：顯示新增、修改、相同與衝突數量，並提供一鍵確認或逐筆勾選。</figcaption></figure>
+          <div class="notes"><div class="noteBlock"><strong>系統負責</strong><span>先把需要注意的差異拉出來，減少人工逐列搜尋。</span></div><div class="noteBlock"><strong>使用者負責</strong><span>確認新增與修改是否合理，再決定是否套用到總表。</span></div><div class="noteBlock"><strong>結果</strong><span>保留人工判斷，同時降低重複比對與複製貼上的時間。</span></div></div>
+        </div>
+      </section>
+
+      <section class="slide">
+        <div class="slideHeader"><div><p class="eyebrow">完成本輪更新</p><h2>產出更動版總表後，必須完成定版才成為正式最新版</h2><p class="lead">系統會在套用修改後產生暫存更動版。等原物料與包材都確認完成後，再由使用者完成本輪更新並定版，避免半成品被誤認為正式版本。</p></div><div class="pageTag">定版前後清楚區分</div></div>
+        <div class="showcase reversed">
+          <figure class="imageStage"><button class="imageButton" type="button" data-full="presentation_assets/compare-complete.png" data-caption="完成比對並產生暫存更動版：完成本輪後即可定版。"><img src="presentation_assets/compare-complete.png" alt="比對完成並產出更動版"></button><figcaption class="captionBar">完成本輪更新：系統產出更動版總表與 Search Report，並提示完成定版。</figcaption></figure>
+          <div class="notes"><div class="noteBlock"><strong>暫存更動版</strong><span>可作為下一份調查表的比對基準，但尚未正式定版。</span></div><div class="noteBlock"><strong>完成定版</strong><span>確認本輪全部完成後，將更動版設定為目前最新總表。</span></div><div class="noteBlock"><strong>管理價值</strong><span>把「工作中的檔案」與「正式最新版」分開，降低誤用風險。</span></div></div>
+        </div>
+      </section>
+
+      <section class="slide">
+        <div class="slideHeader"><div><p class="eyebrow">版本歷程</p><h2>最新版不再靠口頭確認，而是由系統狀態與歷程記錄呈現</h2><p class="lead">版本管理頁讓使用者清楚知道目前最新總表，也能看到歷次版本與定版時間。這是降低錯版與追溯成本的核心設計。</p></div><div class="pageTag">版本控管</div></div>
+        <div class="showcase">
+          <figure class="imageStage"><button class="imageButton" type="button" data-full="presentation_assets/version-history.png" data-caption="版本管理：顯示目前最新總表與歷次定版紀錄。"><img src="presentation_assets/version-history.png" alt="版本管理頁面"></button><figcaption class="captionBar">版本管理：目前最新總表、下載最新版與歷程紀錄集中在同一頁面。</figcaption></figure>
+          <div class="notes"><div class="noteBlock"><strong>解決問題</strong><span>避免「誰手上才是最新版」只能靠口頭詢問。</span></div><div class="noteBlock"><strong>保留依據</strong><span>每次定版留下時間、版本與來源工作，方便日後追溯。</span></div><div class="noteBlock"><strong>降低風險</strong><span>減少舊版檔案被拿來繼續比對或重新整理的可能。</span></div></div>
+        </div>
+      </section>
+
+      <section class="slide">
+        <div class="slideHeader"><div><p class="eyebrow">量化效益</p><h2>保守估算：每年可節省約 26.67 小時</h2><p class="lead">這個估算只計算純整理與填寫 Excel 的時間，尚未包含找錯版、重複整併、追溯來源等額外成本。</p></div><div class="pageTag">效率改善</div></div>
+        <div class="twoCol">
+          <div class="panel amber"><h3>計算方式</h3><div class="formula"><div class="formulaLine"><span>年度調查表數量</span><strong>約 200 份</strong></div><div class="formulaLine"><span>每份平均整理時間</span><strong>約 8 分鐘</strong></div><div class="formulaLine"><span>年度可節省時間</span><strong>1,600 分鐘</strong></div><div class="formulaLine"><span>換算工時</span><strong>約 26.67 小時</strong></div></div></div>
+          <div class="panel"><h3>這是一個保守數字</h3><p>如果只看填寫與整理 Excel，26.67 小時已經能反映年度例行工作的時間改善。</p><p>但實際工作中，最常被低估的是檔案版本混亂後的重工、重新確認與追溯時間。這些成本不一定每次發生，卻常常在發生時耗掉更多時間。</p></div>
+        </div>
+      </section>
+
+      <section class="slide">
+        <div class="slideHeader"><div><p class="eyebrow">管理效益</p><h2>真正的價值，是把容易混亂的資料維護流程變成可管理的流程</h2><p class="lead">系統將人工整理中的風險轉換成可被系統提示、可被確認、可被追溯的管理節點。</p></div><div class="pageTag">風險轉換</div></div>
+        <div class="panel"><table class="riskTable"><thead><tr><th>過去風險</th><th>系統改善</th><th>帶來的管理價值</th></tr></thead><tbody><tr><td>不確定誰手上是最新版</td><td>目前最新總表明確標示，版本歷程集中呈現</td><td>降低錯版作業與重複整理的風險</td></tr><tr><td>多人編輯後難以整併</td><td>透過比對、套用與定版流程統一更新節點</td><td>讓更新責任與時間點更清楚</td></tr><tr><td>新物質或修改項目要人工翻找</td><td>系統先列出新增與修改，使用者再確認</td><td>把人工時間集中在判斷，而非搜尋</td></tr><tr><td>來源資料不易追溯</td><td>輸出 Search Report 並保留版本紀錄</td><td>提高日後查核、交接與說明的可靠度</td></tr></tbody></table></div>
+      </section>
+
+      <section class="slide">
+        <div class="closing"><div class="panel soft"><p class="eyebrow">成果總結</p><h2>讓年度資料整理從「靠人記得」變成「由流程守住」</h2><p class="lead">這套系統把過去仰賴人工經驗的整理工作，轉成可被看見、可被確認、可被追溯的流程。它不只是節省填寫時間，也降低了長期資料維護中最容易被忽略的版本與管理風險。</p><div class="pillRow" aria-label="後續擴充方向"><span class="pill">欄位自動辨識</span><span class="pill">異常資料提示</span><span class="pill">使用者權限</span><span class="pill">稽核紀錄</span><span class="pill">年度資料儀表板</span></div></div></div>
+      </section>
+    </div>
+
+    <nav class="controls" aria-label="簡報控制">
+      <button class="navBtn" id="prevBtn" type="button">上一頁</button>
+      <span class="counter" id="counter">1 / 14</span>
+      <button class="navBtn" id="nextBtn" type="button">下一頁</button>
+    </nav>
+  </main>
+
+  <div class="modal" id="imageModal" role="dialog" aria-modal="true" aria-label="圖片放大檢視">
+    <button class="closeBtn" id="closeModal" type="button">關閉</button>
+    <div class="modalInner"><img id="modalImage" alt=""><div class="modalCaption" id="modalCaption"></div></div>
+  </div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const root = document.documentElement;
+    const counter = document.getElementById("counter");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const modal = document.getElementById("imageModal");
+    const modalImage = document.getElementById("modalImage");
+    const modalCaption = document.getElementById("modalCaption");
+    const closeModal = document.getElementById("closeModal");
+    let index = 0;
+    function setSlide(nextIndex) {
+      index = Math.min(Math.max(nextIndex, 0), slides.length - 1);
+      root.style.setProperty("--slide-index", index);
+      counter.textContent = `${index + 1} / ${slides.length}`;
+      prevBtn.disabled = index === 0;
+      nextBtn.disabled = index === slides.length - 1;
+    }
+    prevBtn.addEventListener("click", () => setSlide(index - 1));
+    nextBtn.addEventListener("click", () => setSlide(index + 1));
+    document.addEventListener("keydown", (event) => {
+      if (modal.classList.contains("open")) {
+        if (event.key === "Escape") closeImage();
+        return;
+      }
+      if (event.key === "ArrowRight" || event.key === "PageDown") setSlide(index + 1);
+      if (event.key === "ArrowLeft" || event.key === "PageUp") setSlide(index - 1);
+      if (event.key === "Home") setSlide(0);
+      if (event.key === "End") setSlide(slides.length - 1);
+    });
+    document.querySelectorAll("[data-full]").forEach((button) => {
+      button.addEventListener("click", () => {
+        modalImage.src = button.dataset.full;
+        modalImage.alt = button.querySelector("img")?.alt || "放大圖片";
+        modalCaption.textContent = button.dataset.caption || "";
+        modal.classList.add("open");
+      });
+    });
+    function closeImage() {
+      modal.classList.remove("open");
+      modalImage.removeAttribute("src");
+    }
+    closeModal.addEventListener("click", closeImage);
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal) closeImage();
+    });
+    setSlide(0);
+  </script>
+</body>
+</html>
