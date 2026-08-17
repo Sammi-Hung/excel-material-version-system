@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Excel 物料版本比對與更新系統</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1>Excel 物料版本比對與更新系統</h1>
+        <p>上傳總表與調查表，比對差異，人工確認後輸出新版 Excel 與 Search Report。</p>
+      </div>
+      <div class="headerActions">
+        <div class="versionBadge">
+          <span>系統版本</span>
+          <strong id="versionText">v1.0.27</strong>
+        </div>
+        <details class="versionHistory">
+          <summary>版本歷程</summary>
+          <ul>
+            <li><strong>v1.0.27</strong> 保護定版總表避免誤刪與降版。</li>
+            <li><strong>v1.0.26</strong> 調查表上傳限制為單檔，避免供應商與品項資料誤套。</li>
+            <li><strong>v1.0.25</strong> 壓縮調查表上傳區，收合調查表清單與本輪檔案明細。</li>
+            <li><strong>v1.0.24</strong> 重整總表/調查表檔案清單，簡化查詢與差異確認流程。</li>
+            <li><strong>v1.0.23</strong> 精簡暫存更動版提示操作。</li>
+            <li><strong>v1.0.22</strong> 修正最新版持久化與自動恢復通知。</li>
+            <li><strong>v1.0.21</strong> 修正定版後狀態與包材查詢欄位。</li>
+            <li><strong>v1.0.20</strong> 修正總表查詢分頁與精簡本輪進度。</li>
+            <li><strong>v1.0.19</strong> 修正本輪進度同步與重複計數。</li>
+            <li><strong>v1.0.18</strong> 修正比對結果與本輪進度同步。</li>
+            <li><strong>v1.0.17</strong> 修正進度、調查表提示與含有值篩選。</li>
+            <li><strong>v1.0.16</strong> 優化本輪進度空狀態與完成狀態顯示。</li>
+            <li><strong>v1.0.15</strong> 修正本輪進度與總表查詢含有值篩選。</li>
+            <li><strong>v1.0.14</strong> 全站改用白色自訂建議清單並顯示完整資料。</li>
+            <li><strong>v1.0.13</strong> 調查表上傳頁保留單一原生建議下拉。</li>
+            <li><strong>v1.0.12</strong> 調查表上傳欄位加入總表關鍵字建議。</li>
+            <li><strong>v1.0.11</strong> 包材支援以供應商名稱定位右側品項。</li>
+            <li><strong>v1.0.10</strong> 壓縮調查表上傳區，保留原物料與包材分流。</li>
+            <li><strong>v1.0.9</strong> 精簡調查表上傳頁，差異確認未比對前收合，頁籤改為版本管理。</li>
+            <li><strong>v1.0.8</strong> 調整頁面流程：比對操作移至調查表上傳頁，上傳區支援拖曳與下載列分頁。</li>
+            <li><strong>v1.0.7</strong> 版本比對頁新增本輪進度條，顯示原物料、包材與完成份數。</li>
+            <li><strong>v1.0.6</strong> 縮短流程文字，修正 Excel 產出後檔案鎖定問題。</li>
+            <li><strong>v1.0.5</strong> 縮短版本比對頁操作流程文字，強調套用本批後才可進入下一輪比對。</li>
+            <li><strong>v1.0.4</strong> 版本比對頁上方改為簡易操作流程，執行比對區顯示目前原物料與包材調查表批次。</li>
+            <li><strong>v1.0.0</strong> 正式第一版：完成上傳、總表查詢、調查表批次比對、差異確認套用與版本定版流程。</li>
+          </ul>
+        </details>
+      </div>
+    </header>
+
+    <main>
+      <nav class="tabs">
+        <button class="tab active" data-tab-target="uploadPage">上傳</button>
+        <button class="tab" data-tab-target="lookupPage">總表查詢</button>
+        <button class="tab" data-tab-target="surveyPage">調查表上傳</button>
+        <button class="tab" data-tab-target="comparePage">版本管理</button>
+      </nav>
+
+      <div id="uploadPage" class="tabPage active">
+        <section class="panel uploadPanel masterDropPanel" id="masterDropZone">
+            <h2>上傳總表</h2>
+            <p class="muted">可點選檔案或直接拖曳 Excel 到這裡。上傳後可在下方下載列選為本次比對總表。</p>
+            <form id="masterForm">
+              <div class="dropZoneInner">
+                <strong>拖曳總表到此處</strong>
+                <span>支援 .xlsx、.xls、.xlsm</span>
+                <input type="file" name="file" accept=".xlsx,.xls,.xlsm" required />
+              </div>
+              <input type="hidden" name="kind" value="master" />
+              <button>上傳總表</button>
+            </form>
+            <div id="masterInfo" class="info"></div>
+        </section>
+        <section class="panel filesPanel">
+          <div class="toolbar">
+            <h2>總表清單</h2>
+            <div id="filesPagerTop" class="pager"></div>
+          </div>
+          <div id="filesList" class="fileListPaged"></div>
+          <div class="pagerBar">
+            <button id="filesPrevPageBtn" type="button">上一頁</button>
+            <div id="filesPager" class="pager"></div>
+            <button id="filesNextPageBtn" type="button">下一頁</button>
+          </div>
+        </section>
+      </div>
+
+      <div id="comparePage" class="tabPage">
+        <section class="panel">
+          <div class="toolbar">
+            <h2>版本管理</h2>
+          </div>
+          <div class="compactStatus singleStatus">
+            <div>
+              <span>目前最新總表</span>
+              <strong id="latestVersionName">尚未選定</strong>
+              <a id="latestVersionDownload" class="hidden" href="#">下載最新版</a>
+            </div>
+          </div>
+        </section>
+        <section class="panel">
+          <h2>最新版版本歷程</h2>
+          <div id="versionsList"></div>
+        </section>
+      </div>
+
+      <div id="surveyPage" class="tabPage">
+        <section class="compactSurveyGrid">
+          <div class="panel uploadPanel compactSurveyPanel">
+            <div class="compactUploadHeader">
+              <h2>原物料調查表</h2>
+              <span>比對原物料工作表</span>
+            </div>
+            <form id="rawSurveyForm">
+              <div class="batchDefaults">
+                <label class="suggestField">供應商代號（必填）<input id="rawSurveySupplierCode" name="supplier_code" autocomplete="off" placeholder="輸入代號或從建議選擇" required /><div id="rawSurveySupplierSuggest" class="suggestPanel"></div></label>
+                <label class="suggestField">品項/原料名稱（必填）<input id="rawSurveyMaterial" name="material_name" autocomplete="off" placeholder="輸入品項或從總表選擇" required /><div id="rawSurveyMaterialSuggest" class="suggestPanel"></div></label>
+                <label class="suggestField">細項分類<input id="rawSurveySubcategory" name="subcategory" autocomplete="off" placeholder="可留空，建議選總表分類" /><div id="rawSurveyCategorySuggest" class="suggestPanel"></div></label>
+              </div>
+              <label class="filePickLine">
+                <span>選擇檔案</span>
+                <strong data-file-label="rawSurveyForm">上傳 1 份 Excel</strong>
+                <input class="surveyFileInput" type="file" name="file" accept=".xlsx,.xls,.xlsm" required />
+              </label>
+              <input type="hidden" name="kind" value="survey" />
+              <button>加入原物料批次</button>
+            </form>
+            <div id="rawSurveyInfo" class="info"></div>
+            <div id="rawBatchList" class="batchList uploadBatchSummary"></div>
+          </div>
+          <div class="panel uploadPanel compactSurveyPanel">
+            <div class="compactUploadHeader">
+              <h2>包材調查表</h2>
+              <span>比對包材工作表</span>
+            </div>
+            <form id="packageSurveyForm">
+              <div class="batchDefaults packageBatchDefaults">
+                <label class="suggestField">供應商名稱/代號（必填）<input id="packageSurveySupplier" name="supplier_code" autocomplete="off" placeholder="輸入名稱/代號或從總表選擇" required /><div id="packageSurveySupplierSuggest" class="suggestPanel"></div></label>
+                <label class="suggestField">品項/包材名稱（必填）<input id="packageSurveyMaterial" name="material_name" autocomplete="off" placeholder="輸入品項或從總表選擇" required /><div id="packageSurveyMaterialSuggest" class="suggestPanel"></div></label>
+                <input name="subcategory" type="hidden" value="" />
+              </div>
+              <label class="filePickLine">
+                <span>選擇檔案</span>
+                <strong data-file-label="packageSurveyForm">上傳 1 份 Excel</strong>
+                <input class="surveyFileInput" type="file" name="file" accept=".xlsx,.xls,.xlsm" required />
+              </label>
+              <input type="hidden" name="kind" value="survey" />
+              <button>加入包材批次</button>
+            </form>
+            <div id="packageSurveyInfo" class="info"></div>
+            <div id="packageBatchList" class="batchList uploadBatchSummary"></div>
+          </div>
+        </section>
+        <section class="panel surveyFilesPanel">
+          <div class="toolbar">
+            <h2>調查表檔案清單</h2>
+            <button id="toggleSurveyFilesBtn" type="button">查看清單</button>
+          </div>
+          <div id="surveyFilesSummary" class="summaryStrip"></div>
+          <div id="surveyFilesList" class="fileListPaged tableLikeList hidden"></div>
+          <div id="surveyFilesPagerBar" class="pagerBar hidden">
+            <button id="surveyFilesPrevPageBtn" type="button">上一頁</button>
+            <div id="surveyFilesPager" class="pager"></div>
+            <button id="surveyFilesNextPageBtn" type="button">下一頁</button>
+          </div>
+        </section>
+        <section class="panel">
+          <div class="toolbar">
+            <h2>執行比對</h2>
+            <div class="inline">
+              <button id="compareBtn">開始比對</button>
+              <button id="finalizeBtn" class="primary hidden" type="button">完成本輪更新並定版</button>
+              <button id="cancelJobBtn" type="button" class="hidden">取消本次比對</button>
+            </div>
+          </div>
+          <div id="compareBasisNotice" class="notice"></div>
+          <div id="batchProgress"></div>
+          <div id="roundFilesList" class="batchList roundBatchDetails hidden"></div>
+          <div id="compareSummary" class="summary"></div>
+        </section>
+
+        <section class="panel diffPanel" id="diffPanel">
+        <div class="toolbar">
+          <h2>確認並套用</h2>
+          <div>
+            <select id="typeFilter">
+              <option value="all">新增與修改</option>
+              <option value="added">新增</option>
+              <option value="modified">修改</option>
+            </select>
+            <select id="pageSize">
+              <option>20</option>
+              <option selected>50</option>
+              <option>100</option>
+            </select>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="autoConfirmBtn" class="primary" type="button">一鍵確認</button>
+          <button data-action="accept_new">勾選確認</button>
+          <button id="applyBtn" class="primary">套用本批修改</button>
+        </div>
+        <div class="fieldHint">套用後會產生本輪暫存更動版；若還有待比對檔案，系統會直接提示下一步。</div>
+        <div id="diffCounts" class="diffCounts" aria-live="polite">
+          <span class="tag added">新增 0</span>
+          <span class="tag modified">修改 0</span>
+          <span class="tag same">相同 0</span>
+          <span class="tag conflict">衝突 0</span>
+        </div>
+        <div class="actionGuide">
+          <strong>差異確認怎麼選：</strong>
+          先確認新增與修改，再按「套用本批修改」。套用後才會產生暫存更動版，並可進入下一輪。
+        </div>
+        <div class="tableWrap diffTableWrap">
+          <table class="diffTable">
+            <colgroup>
+              <col class="colCheck" />
+              <col class="colDiff" />
+              <col class="colAction" />
+              <col class="colSurveyType" />
+              <col class="colSupplierCode" />
+              <col class="colMaterialName" />
+              <col class="colChemical" />
+              <col class="colCas" />
+              <col class="colLevel" />
+              <col class="colChanges" />
+              <col class="colSourceFile" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th><input id="selectAll" type="checkbox" /></th>
+                <th>差異</th>
+                <th>狀態</th>
+                <th>類型</th>
+                <th>供應商代號/名稱</th>
+                <th>品項名稱</th>
+                <th>化學物質</th>
+                <th>CAS</th>
+                <th>Level</th>
+                <th>修改欄位</th>
+                <th>來源檔案</th>
+              </tr>
+            </thead>
+            <tbody id="resultsBody"></tbody>
+          </table>
+        </div>
+        <div class="pagerBar">
+          <button id="prevPageBtn" type="button">上一頁</button>
+          <div id="pager" class="pager"></div>
+          <button id="nextPageBtn" type="button">下一頁</button>
+        </div>
+      </section>
+      </div>
+
+      <div id="lookupPage" class="tabPage">
+        <section class="panel">
+          <div class="toolbar">
+            <h2>總表細項查詢</h2>
+            <div class="muted">查詢總表：<strong id="lookupMasterName">尚未選用</strong></div>
+          </div>
+          <div class="lookupGrid">
+            <label>工作表
+              <select id="lookupSheet">
+                <option>原物料</option>
+                <option>包材</option>
+              </select>
+            </label>
+            <label>供應商代號
+              <input id="lookupSupplierCode" autocomplete="off" placeholder="可輸入代號或從建議選擇" />
+              <div id="lookupSupplierCodeSuggest" class="suggestPanel"></div>
+            </label>
+            <label>供應商名稱
+              <input id="lookupSupplier" autocomplete="off" placeholder="輸入名稱會顯示相關選項" />
+              <div id="lookupSupplierSuggest" class="suggestPanel"></div>
+            </label>
+            <label>品項/原料名稱
+              <input id="lookupMaterial" autocomplete="off" placeholder="輸入品項或原料名稱" />
+              <div id="lookupMaterialSuggest" class="suggestPanel"></div>
+            </label>
+            <label><span id="lookupCategoryLabel">品項分類</span>
+              <input id="lookupCategory" autocomplete="off" placeholder="可輸入分類關鍵字" />
+              <div id="lookupCategorySuggest" class="suggestPanel"></div>
+            </label>
+            <label>細項化學物質
+              <input id="lookupSubstance" autocomplete="off" placeholder="輸入化學物質關鍵字" />
+              <div id="lookupSubstanceSuggest" class="suggestPanel"></div>
+            </label>
+          </div>
+          <div class="inline lookupActions">
+            <button id="lookupBtn" class="primary">查詢總表</button>
+            <button id="lookupClearBtn">清空條件</button>
+          </div>
+          <div id="lookupSummary" class="summary"></div>
+        </section>
+
+        <section class="panel">
+          <div class="toolbar">
+            <h2>細項清單</h2>
+            <div id="lookupCount" class="muted"></div>
+          </div>
+          <div class="lookupPager">
+            <button id="lookupPrevPageBtn">上一頁</button>
+            <span id="lookupPager" class="muted"></span>
+            <button id="lookupNextPageBtn">下一頁</button>
+          </div>
+          <div class="tableWrap lookupTableWrap">
+            <table class="lookupTable">
+              <colgroup>
+                <col class="colSheet" />
+                <col class="colSupplierCode" />
+                <col class="colSupplier" />
+                <col class="colMaterial" />
+                <col class="colCategory" />
+                <col class="colSubstance" />
+                <col class="colCas" />
+                <col class="colLevel" />
+                <col class="colContent" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>工作表</th>
+                  <th>供應商代號</th>
+                  <th>供應商</th>
+                  <th>品項</th>
+                  <th>品項分類</th>
+                  <th>化學物質</th>
+                  <th>CAS</th>
+                  <th>Level</th>
+                  <th>含有值</th>
+                </tr>
+              </thead>
+              <tbody id="lookupRows"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </main>
+  <script src="/app.js?v=1.0.27"></script>
+  </body>
+</html>
